@@ -1,0 +1,26 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // users/{userId}
+    // A user can only read and write their OWN profile document.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // tasks/{taskId}
+    // A user can only read/update/delete a task if the task's
+    // userId field matches their own auth UID.
+    // On create, we check that the new document's userId matches
+    // the creator's UID — this stops a user from creating a task
+    // "on behalf of" someone else.
+    match /tasks/{taskId} {
+      allow read, update, delete: if request.auth != null
+                                    && request.auth.uid == resource.data.userId;
+
+      allow create: if request.auth != null
+                     && request.auth.uid == request.resource.data.userId;
+    }
+  }
+}
